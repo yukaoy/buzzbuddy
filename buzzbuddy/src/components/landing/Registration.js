@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Registration.css";
+import "./Landing.css";
 
 const Registration = () => {
   const navigate = useNavigate();
@@ -11,7 +11,30 @@ const Registration = () => {
   const [password, setPassword] = useState("");
   const [passwordc, setPasswordc] = useState("");
 
-  const handleSubmit = (event) => {
+  const registerUser = async () => {
+    const response = await fetch("https://jsonplaceholder.typicode.com/users");
+    const users = await response.json();
+
+    const existingUser = users.find((user) => user.name === display);
+
+    if (existingUser) {
+      const displayError = document.querySelector(".display .error");
+      displayError.style.display = "inline";
+      displayError.textContent = "Username already exists.";
+    } else {
+      const userName = display;
+      localStorage.setItem("loggedInUser", userName);
+      navigate("/main", { state: { userName } });
+      setDisplay("");
+      setEmail("");
+      setPhone("");
+      setZipcode("");
+      setPassword("");
+      setPasswordc("");
+    };
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
     let error = false;
 
@@ -70,23 +93,14 @@ const Registration = () => {
       passwordcError.style.display = "none";
     }
 
-    // Submit the form if there is no error
     if (!error) {
-      // Submit logic here
-      console.log("Form submitted successfully.");
-      // Reset values
-      setDisplay("");
-      setEmail("");
-      setPhone("");
-      setZipcode("");
-      setPassword("");
-      setPasswordc("");
-      navigate("/main");
+      await registerUser();
     }
   };
 
   return (
     <form>
+      <div className="form-title">Registration</div>
       <div className="display">
         <label htmlFor="display">Display Name</label>
         <input

@@ -1,69 +1,99 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import "./Landing.css";
 
 const LogIn = () => {
-  const navigate = useNavigate;
-  const [display, setDisplay] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState("");
+  const [logInPassword, setLogInPassword] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
     let error = false;
 
     // Validation for display
-    const displayName = display;
-    const startsWithNumber = /^[0-9]/.test(displayName);
-    const displayError = document.querySelector(".display .error");
+    const startsWithNumber = /^[0-9]/.test(userName);
+    const userNameError = document.querySelector(".userName .error");
     if (startsWithNumber) {
       error = true;
-      displayError.style.display = "inline";
-      displayError.textContent = "Display name may not start with a number.";
+      userNameError.style.display = "inline";
+      userNameError.textContent = "User name may not start with a number.";
     } else {
-      displayError.style.display = "none";
+      userNameError.style.display = "none";
     }
 
-    // Submit the form if there is no error
+    const passwordError = document.querySelector(".logInPassword .error");
+
     if (!error) {
-      // Submit logic here
-      console.log("Form submitted successfully.");
-      // Reset values
-      setDisplay("");
-      setPassword("");
-      navigate("/main");
+      const response = await fetch(
+        "https://jsonplaceholder.typicode.com/users?username=" + userName
+      );
+      const users = await response?.json();
+      if (users?.length === 0) {
+        setLoggedIn(false);
+        localStorage.setItem("loggedInState", false);
+        userNameError.style.display = "inline";
+        userNameError.textContent = "User does not exist.";
+      } else if (
+        users?.length > 0 &&
+        users[0]?.address.street !== logInPassword
+      ) {
+        setLoggedIn(false);
+        localStorage.setItem("loggedInState", false);
+        passwordError.style.display = "inline";
+        passwordError.textContent = "Password is incorrect.";
+      } else {
+        setLoggedIn(true);
+        localStorage.setItem("loggedInState", true);
+        localStorage.setItem("loggedInUser", userName);
+        navigate("/main");
+        setUserName("");
+        setLogInPassword("");
+      }
     }
   };
 
   return (
     <form>
-      <div className="display">
-        <label htmlFor="display">Display Name</label>
+      <div className="form-title">Login</div>
+      <div className="userName">
+        <label htmlFor="userName">User Name</label>
         <input
-          id="display"
-          name="display"
+          id="userName"
+          name="userName"
           type="text"
-          placeholder="your display name"
-          value={display}
-          onChange={(e) => setDisplay(e.target.value)}
+          placeholder="your user name"
+          data-testid="username-login"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
         />
-        <span id="displayValue">{display}</span>
+        <span id="userNameValue">{userName}</span>
         <span className="updated"></span>
-        <span className="error"></span>
+        <span className="error" data-testid="username-error"></span>
       </div>
-      <div className="password">
-        <label htmlFor="password">Password</label>
+      <div className="logInPassword">
+        <label htmlFor="logInPassword">Password</label>
         <input
-          id="password"
-          name="password"
+          id="logInPassword"
+          name="logInPassword"
           type="password"
-          placeholder="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          data-testid="password-login"
+          value={logInPassword}
+          onChange={(e) => setLogInPassword(e.target.value)}
         />
-        <span id="passwordValue">{"*".repeat(password.length)}</span>
+        <span id="logInPasswordValue">{"*".repeat(logInPassword.length)}</span>
         <span className="updated"></span>
-        <span className="error"></span>
+        <span className="error" data-testid="password-error"></span>
       </div>
-      <button id="submit" type="submit" onClick={handleSubmit}>
+      <button
+        data-testid="login-button"
+        id="submit"
+        type="submit"
+        onClick={handleSubmit}
+      >
         Login
       </button>
     </form>
