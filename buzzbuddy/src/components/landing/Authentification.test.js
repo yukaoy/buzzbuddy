@@ -28,7 +28,9 @@ describe("Authentification validation", () => {
     localStorage.setItem("loggedInState", false);
     localStorage.setItem("loggedInUser", "");
   });
-  afterEach(() => {});
+  afterEach(() => {
+    localStorage.clear();
+  });
 
   it("should log in a previously registered user", async () => {
     global.fetch = jest.fn(() =>
@@ -154,7 +156,11 @@ describe("Authentification validation", () => {
       // logout
       fireEvent.click(screen.getByTestId("logout-button"));
     });
-    await waitFor(() => expect(localStorage.getItem("loggedInUser")).toBe(null));
-    await waitFor(() => expect(localStorage.getItem("loggedInState")).toBe("false"));
+    await waitFor(() =>
+      expect(localStorage.getItem("loggedInUser")).toBe(null)
+    );
+    await waitFor(() =>
+      expect(localStorage.getItem("loggedInState")).toBe("false")
+    );
   });
 });

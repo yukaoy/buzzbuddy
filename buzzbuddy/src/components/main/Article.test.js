@@ -1,161 +1,123 @@
 import React from "react";
-import {
-  render,
-  screen,
-  fireEvent,
-  act,
-  waitFor,
-} from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
-import LogIn from "./LogIn";
-import MiniProfile from "../main/MiniProfile";
-import { createMemoryHistory } from "history";
+import Main from "../../pages/Main";
 import { BrowserRouter as Router } from "react-router-dom";
+import { fireEvent } from "@testing-library/react";
 
 const setup = () => {
   return {
     ...render(
       <Router>
-        <LogIn />
-        <MiniProfile user="Bret" />
+        <Main />
       </Router>
     ),
   };
 };
 
-describe("Article validation", () => {
+describe("Articles Validation", () => {
   beforeEach(() => {
-    setup();
-    localStorage.setItem("loggedInState", false);
-    localStorage.setItem("loggedInUser", "");
+    localStorage.setItem("loggedInUser", "Bret");
   });
-  afterEach(() => {});
+
+  afterEach(() => {
+    localStorage.clear();
+    jest.resetAllMocks();
+  });
 
   it("should fetch all articles for current logged in user", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        json: () =>
-          Promise.resolve([
-            {
-              username: "Bret",
-              address: { street: "Kulas Light" },
-            },
-          ]),
-      })
-    );
+    const mockUserResponse = {
+      id: 1,
+      username: "Bret",
+      address: { street: "Kulas Light" },
+    };
 
-    await act(async () => {
-      // input the username and password
-      fireEvent.change(screen.getByTestId("username-login"), {
-        target: { value: "Bret" },
-      });
-      fireEvent.change(screen.getByTestId("password-login"), {
-        target: { value: "Kulas Light" },
-      });
-      // login
-      fireEvent.click(screen.getByTestId("login-button"));
+    const mockPostsResponse = [
+      {
+        userId: 1,
+        title: "Article 1",
+        body: "Body of article 1",
+      },
+      {
+        userId: 1,
+        title: "Article 2",
+        body: "Body of article 2",
+      },
+    ];
 
-      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-      await waitFor(() =>
-        expect(fetch).toHaveBeenCalledWith(
-          "https://jsonplaceholder.typicode.com/users?username=Bret"
-        )
-      );
-    });
-    await waitFor(() =>
-      expect(localStorage.getItem("loggedInState")).toBe("true")
-    );
-    await waitFor(() =>
-      expect(localStorage.getItem("loggedInUser")).toBe("Bret")
-    );
-  });
-
-  it("should not log in user that does not exists", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve([]),
-      })
-    );
-    await act(async () => {
-      // input the username and password
-      fireEvent.change(screen.getByTestId("username-login"), {
-        target: { value: "abc" },
-      });
-      fireEvent.change(screen.getByTestId("password-login"), {
-        target: { value: "Kulas Light" },
-      });
-      // login
-      fireEvent.click(screen.getByTestId("login-button"));
-
-      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-      await waitFor(() =>
-        expect(fetch).toHaveBeenCalledWith(
-          "https://jsonplaceholder.typicode.com/users?username=abc"
-        )
-      );
-    });
-    // Assert that user is not successfully logged in
-    await waitFor(() =>
-      expect(localStorage.getItem("loggedInState")).toBe("false")
-    );
-    await waitFor(() => expect(localStorage.getItem("loggedInUser")).toBe(""));
-    // Assert error state/message
-    await waitFor(() =>
-      expect(screen.getByTestId("username-error").textContent).toBe(
-        "User does not exist."
+    global.fetch = jest
+      .fn()
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          json: () => mockUserResponse,
+        })
       )
-    );
-  });
-
-  it("should not log in user with incorrect password", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        json: () =>
-          Promise.resolve([
-            {
-              username: "Bret",
-              address: { street: "Kulas Light" },
-            },
-          ]),
-      })
-    );
-    await act(async () => {
-      // input the username and password
-      fireEvent.change(screen.getByTestId("username-login"), {
-        target: { value: "Bret" },
-      });
-      fireEvent.change(screen.getByTestId("password-login"), {
-        target: { value: "abc" },
-      });
-      // login
-      fireEvent.click(screen.getByTestId("login-button"));
-
-      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-      await waitFor(() =>
-        expect(fetch).toHaveBeenCalledWith(
-          "https://jsonplaceholder.typicode.com/users?username=Bret"
-        )
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          json: () => mockPostsResponse,
+        })
       );
+
+    act(() => {
+      setup();
     });
-    // Assert that user is not successfully logged in
+
+    await act(async () => {
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    });
+
+    expect(screen.getByText("Article 1")).toBeInTheDocument();
+    expect(screen.getByText("Article 2")).toBeInTheDocument();
+  });
+
+  it("should fetch subset of articles for current logged in user given search keyword", async () => {
+    const mockUser = {
+      id: 1,
+      username: "Bret",
+      address: { street: "Kulas Light" },
+    };
+
+    const mockPosts = [
+      {
+        userId: 1,
+        title: "Article 1",
+        body: "Body of article 1",
+      },
+      {
+        userId: 1,
+        title: "Article 2",
+        body: "Body of article 2",
+      },
+    ];
+
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve(mockUser),
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve(mockPosts),
+      });
+
+    await act(async () => {
+      setup();
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("search-bar"), {
+        target: { value: "2" },
+      });
+    });
+
     await waitFor(() =>
-      expect(localStorage.getItem("loggedInState")).toBe("false")
+      expect(screen.queryByText("Article 1")).not.toBeInTheDocument()
     );
-    await waitFor(() => expect(localStorage.getItem("loggedInUser")).toBe(""));
-    // Assert error state/message
     await waitFor(() =>
-      expect(screen.getByTestId("password-error").textContent).toBe(
-        "Password is incorrect."
-      )
+      expect(screen.queryByText("Article 2")).toBeInTheDocument()
     );
   });
 
-  it("should logout a user", async () => {
-    await act(async () => {
-      // logout
-      fireEvent.click(screen.getByTestId("logout-button"));
-    });
-    await waitFor(() => expect(localStorage.getItem("loggedInUser")).toBe(null));
-    await waitFor(() => expect(localStorage.getItem("loggedInState")).toBe("false"));
-  });
+  // it("should add articles when adding a follower", async() => {
+
+  // });
 });

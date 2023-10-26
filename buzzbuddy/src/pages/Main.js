@@ -27,15 +27,30 @@ const Main = () => {
 
   useEffect(() => {
     async function fetchArticles() {
-      const followingArticles = [];
+      const allArticles = [];
+
+      // logged in user's articles
+      const loggedinUserResponse = await fetch(
+        "https://jsonplaceholder.typicode.com/posts?username=" + userName
+      );
+      const loggedinUserArticles = await loggedinUserResponse.json();
+      loggedinUserArticles.forEach((article) => {
+        allArticles.push({
+          ...article,
+          date: getRandomDate(),
+          username: userName,
+        });
+      });
+
+      // follow users' articles
       for (const followingUser of followingUsers) {
         const response = await fetch(
-          "https://jsonplaceholder.typicode.com/posts?userId=" +
-            followingUser.id
+          "https://jsonplaceholder.typicode.com/posts?username=" +
+            followingUser.username
         );
         const userArticles = await response.json();
         userArticles.forEach((article) => {
-          followingArticles.push({
+          allArticles.push({
             ...article,
             date: getRandomDate(),
             username: followingUser.username,
@@ -43,20 +58,19 @@ const Main = () => {
         });
       }
 
-      const sortedArticles = followingArticles.sort((a, b) => b.date - a.date);
+      const sortedArticles = allArticles.sort((a, b) => b.date - a.date);
 
       sortedArticles
         .slice(0, 3)
         .forEach((article) => (article.hasImage = true));
 
-      console.log(sortedArticles);
       setArticles(sortedArticles);
     }
 
     fetchArticles();
-  }, [followingUsers]);
+  }, [followingUsers, userName]);
 
-  function getRandomDate(articleId) {
+  function getRandomDate() {
     const randomTimestamp = Math.random() * new Date().getTime();
     return new Date(randomTimestamp);
   }
